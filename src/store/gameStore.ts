@@ -1,22 +1,37 @@
 import { create } from 'zustand';
+import type { Player } from '../core/types/player';
+import type { Board } from '../core/board/createBoard';
+import { createEmptyBoard } from '../core/board/createBoard';
 
 interface GameState {
-  board: string[][];
-  currentPlayer: 'black' | 'white';
-  placeStone: (x: number, y: number) => void;
+  board: Board;
+  currentPlayer: Exclude<Player, null>; // only 'blue' | 'red'
+  placeToken: (x: number, y: number) => void;
+  toggleWall: (x: number, y: number, side: 'top' | 'right' | 'bottom' | 'left') => void;
 }
 
 export const useGameStore = create<GameState>((set) => ({
-  board: Array.from({ length: 9 }, () => Array(9).fill('')),
-  currentPlayer: 'black',
-  placeStone: (x, y) =>
+  board: createEmptyBoard(7),
+  currentPlayer: 'blue',
+
+  placeToken: (x, y) =>
     set((state) => {
-      if (state.board[y][x] !== '') return state; // spot taken
-      const newBoard = state.board.map((row) => [...row]);
-      newBoard[y][x] = state.currentPlayer;
+      const cell = state.board[y][x];
+      if (cell.token !== null) return state; // already occupied
+
+      const newBoard = state.board.map((row) => row.map((c) => ({ ...c })));
+      newBoard[y][x].token = state.currentPlayer;
+
       return {
         board: newBoard,
-        currentPlayer: state.currentPlayer === 'black' ? 'white' : 'black',
+        currentPlayer: state.currentPlayer === 'blue' ? 'red' : 'blue',
       };
+    }),
+
+  toggleWall: (x, y, side) =>
+    set((state) => {
+      const newBoard = state.board.map((row) => row.map((c) => ({ ...c })));
+      newBoard[y][x].walls[side] = !newBoard[y][x].walls[side];
+      return { board: newBoard };
     }),
 }));
